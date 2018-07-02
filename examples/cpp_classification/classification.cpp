@@ -22,13 +22,13 @@ class Classifier {
  public:
   Classifier(const string& model_file,
              const string& trained_file,
-             const string& mean_file,
+             //const string& mean_file,
              const string& label_file);
 
   std::vector<Prediction> Classify(const cv::Mat& img, int N = 5);
 
  private:
-  void SetMean(const string& mean_file);
+ void SetMean(const string& mean_file);
 
   std::vector<float> Predict(const cv::Mat& img);
 
@@ -47,7 +47,7 @@ class Classifier {
 
 Classifier::Classifier(const string& model_file,
                        const string& trained_file,
-                       const string& mean_file,
+                       //const string& mean_file,
                        const string& label_file) {
 #ifdef CPU_ONLY
   Caffe::set_mode(Caffe::CPU);
@@ -69,7 +69,7 @@ Classifier::Classifier(const string& model_file,
   input_geometry_ = cv::Size(input_layer->width(), input_layer->height());
 
   /* Load the binaryproto mean file. */
-  SetMean(mean_file);
+  //SetMean(mean_file);
 
   /* Load labels. */
   std::ifstream labels(label_file.c_str());
@@ -213,8 +213,11 @@ void Classifier::Preprocess(const cv::Mat& img,
   else
     sample_resized.convertTo(sample_float, CV_32FC1);
 
-  cv::Mat sample_normalized;
-  cv::subtract(sample_float, mean_, sample_normalized);
+ // cv::Mat sample_normalized=sample_float; 주석풀어줘야 기본
+  //cv::subtract(sample_float, mean_, sample_normalized); 아래3개 추가된
+    cv::Mat sample_normalized;
+    cv::Mat avgimg(img.rows, img.cols, CV_32FC3, cv::Scalar(93.5940,104.7624,129.1863));
+    cv::subtract(sample_float, avgimg, sample_normalized);
 
   /* This operation will write the separate BGR planes directly to the
    * input layer of the network because it is wrapped by the cv::Mat
@@ -227,7 +230,7 @@ void Classifier::Preprocess(const cv::Mat& img,
 }
 
 int main(int argc, char** argv) {
-  if (argc != 6) {
+  if (argc != 5) {
     std::cerr << "Usage: " << argv[0]
               << " deploy.prototxt network.caffemodel"
               << " mean.binaryproto labels.txt img.jpg" << std::endl;
@@ -238,16 +241,18 @@ int main(int argc, char** argv) {
 
   string model_file   = argv[1];
   string trained_file = argv[2];
-  string mean_file    = argv[3];
-  string label_file   = argv[4];
-  Classifier classifier(model_file, trained_file, mean_file, label_file);
+  //string mean_file    = argv[3];
+  string label_file   = argv[3];
+  Classifier classifier(model_file, trained_file, label_file);
 
-  string file = argv[5];
+  string file = argv[4];
 
   std::cout << "---------- Prediction for "
             << file << " ----------" << std::endl;
 
   cv::Mat img = cv::imread(file, -1);
+ // cv::Mat imginv;
+  //cv:bitwise_not(img, imginv);
   CHECK(!img.empty()) << "Unable to decode image " << file;
   std::vector<Prediction> predictions = classifier.Classify(img);
 
